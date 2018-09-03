@@ -1,32 +1,39 @@
-package pnunu;
+package pnunu.realm;
 
+import com.alibaba.druid.pool.DruidDataSource;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.UsernamePasswordToken;
 import org.apache.shiro.mgt.DefaultSecurityManager;
-import org.apache.shiro.realm.SimpleAccountRealm;
+import org.apache.shiro.realm.jdbc.JdbcRealm;
 import org.apache.shiro.subject.Subject;
-import org.junit.Before;
 import org.junit.Test;
+
+import javax.sql.DataSource;
 
 /**
  * @author: pnunu
- * @create: 2018-08-26 13:02
- * @description: AuthenticationTest
+ * @create: 2018-09-03 22:15
  */
-public class AuthenticationTest {
+public class JdbcRealmTest {
 
-    SimpleAccountRealm realm = new SimpleAccountRealm();
-
-    @Before
-    public void addUser() {
-        realm.addAccount("pnunu", "pnunu", "admin", "user");
+    private DruidDataSource druidDataSource = new DruidDataSource();
+    {
+        druidDataSource.setUrl("jdbc:mysql://localhost:3306/pnunu");
+        druidDataSource.setUsername("root");
+        druidDataSource.setPassword("123456");
     }
 
     @Test
     public void testAuthentication() {
+        JdbcRealm jdbcRealm = new JdbcRealm();
+
+        jdbcRealm.setDataSource(druidDataSource);
+        //权限开关
+        jdbcRealm.setPermissionsLookupEnabled(true);
+
         //1、构建securityManager环境
-        DefaultSecurityManager  manager = new DefaultSecurityManager();
-        manager.setRealm(realm);
+        DefaultSecurityManager manager = new DefaultSecurityManager();
+        manager.setRealm(jdbcRealm);
 
         //2、主题提交认证请求
         SecurityUtils.setSecurityManager(manager);
@@ -51,8 +58,11 @@ public class AuthenticationTest {
         //角色验证
         try {
             subject.checkRoles("admin", "user");
+            subject.checkPermission("user:select");
+            System.out.println("权限正常");
         } catch (Exception e) {
             System.out.println("角色校验失败。" + e.getMessage());
+            e.printStackTrace();
         }
 
     }
